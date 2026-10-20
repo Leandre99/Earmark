@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A registered, verified provider (clinic, pharmacy, school...). Money only ever goes to
+// these accounts, never to the family, which is what actually prevents diversion.
+model Provider {
+  id          String    @id @default(cuid())
+  name        String
+  category    String // HEALTH | PHARMACY | SCHOOL | GROCERY | HOUSING
+  city        String
+  paypalEmail String
+  verified    Boolean   @default(true)
+  invoices    Invoice[]
+  createdAt   DateTime  @default(now())
+}
+
+// One earmarked transfer from a sender to a beneficiary, split into category budgets.
+model Envelope {
+  id                String       @id @default(cuid())
+  code              String       @unique // short code the provider uses to bill this envelope
+  senderName        String
+  beneficiaryName   String
+  beneficiaryEmail  String // PayPal email that receives the free-use portion
+  currency          String       @default("USD")
+  totalCents        Int
+  status            String       @default("DRAFT") // DRAFT | FUNDED | CLOSED
+  remainderPolicy   String       @default("REFUND") // REFUND | RELEASE (to beneficiary)
+  paypalOrderId     String?
+  paypalCaptureId   String?
+  expiresAt         DateTime
+  allocations       Allocation[]
+  invoices          Invoice[]
+  events            Event[]
+  createdAt         DateTime     @default(now())
+}
+
+model Allocation {
+  id          String   @id @default(cuid())
+  envelope    Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId  String
+  category    String // HEALTH | PHARMACY | SCHOOL | GROCERY | HOUSING | FREE
+  label       String // e.g. "School fees for Kofi"
+  budgetCents Int
+  spentCents  Int      @default(0)
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  envelope       Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId     String
+  provider       Provider @relation(fields: [providerId], references: [id])
+  providerId     String
+  amountCents    Int
+  invoiceNumber  String?
+  invoiceDate    String?
+  imageHash      String // sha256 of the uploaded image, for duplicate detection
+  extractedJson  String // raw AI extraction, kept for audit
+  status         String // PAID | PENDING_APPROVAL | REJECTED
+  reasons        String // JSON array of check results shown to the sender
+  payoutBatchId  String?
+  createdAt      DateTime @default(now())
+}
+
+// Append-only audit trail, shown in the sender dashboard.
+model Event {
+  id         String   @id @default(cuid())
+  envelope   Envelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  envelopeId String
+  type       String
+  message    String
+  createdAt  DateTime @default(now())
+}
