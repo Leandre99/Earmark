@@ -40,7 +40,8 @@ Built for the PayPal AI Hackathon (2026).
 
 ## Run locally
 
-Requirements: Node 20+, a PayPal developer account, a Gemini API key.
+Requirements: Node 20+, a Postgres database (a free [Neon](https://neon.tech) database works), a PayPal
+developer account, a Gemini API key.
 
 ```bash
 npm install
@@ -51,6 +52,12 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+### Deploy on Vercel
+
+1. Import the GitHub repo in Vercel.
+2. In Project Settings → Environment Variables, add every variable from `.env.example`.
+3. Run `npm run db:push` and `npm run db:seed` once from your machine against the same `DATABASE_URL`.
 
 ### PayPal sandbox setup
 
