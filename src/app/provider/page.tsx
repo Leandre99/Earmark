@@ -45,12 +45,16 @@ export default function ProviderPage() {
 
   useEffect(() => {
     fetch("/api/providers")
-      .then((r) => r.json())
-      .then((list: ProviderDTO[]) => {
+      .then(async (r) => {
+        const json = await r.json().catch(() => null);
+        if (!r.ok || !Array.isArray(json)) throw new Error(json?.error ?? "Couldn't load providers");
+        return json as ProviderDTO[];
+      })
+      .then((list) => {
         setProviders(list);
         if (list[0]) setProviderId(list[0].id);
       })
-      .catch(() => setError("Couldn't load providers"));
+      .catch((e: Error) => setError(e.message));
   }, []);
 
   useEffect(() => {

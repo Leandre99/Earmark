@@ -68,8 +68,9 @@ export default function DashboardPage() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/envelopes");
-      if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't load envelopes");
-      const list: EnvelopeDTO[] = await res.json();
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(json)) throw new Error(json?.error ?? "Couldn't load envelopes");
+      const list = json as EnvelopeDTO[];
       setEnvelopes(list);
       setSelectedId((id) => id ?? list[0]?.id ?? null);
     } catch (e) {
